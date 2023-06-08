@@ -1,0 +1,50 @@
+version: '3.9'
+
+networks:
+  tmccasenet:
+
+services:
+  tmccase: 
+    build:
+      args:
+        user: dev
+        uid: 1000
+      context: ./
+      dockerfile: Dockerfile 
+    ports:
+      - "9000:9000"
+    volumes:
+      - ./src:/var/www/html
+    depends_on:
+      - dbmysql
+    networks:
+      - tmccasenet
+
+  nginx-mobile:
+    image: nginx:alpine
+    volumes:
+      - ./src:/var/www/html
+      - ./docker/nginx/default.conf:/etc/nginx/conf.d/default.conf
+    ports:
+      - "${NGINX_PORT:-8080}:80"
+    depends_on:
+      - tmccase
+    networks:
+      - tmccasenet
+
+  dbmysql: 
+    image: mariadb:10.4
+    restart: unless-stopped
+    environment:
+      TZ: ${TIME_ZONE_ID}
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+      MYSQL_USER: ${MYSQL_USER}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD}
+      MYSQL_DATABASE: ${MYSQL_DATABASE}
+      MYSQL_ROOT_HOST: ${MYSQL_ROOT_HOST}
+    ports:
+      - "3306:3306"
+    volumes:
+      - ~/docker-store/mariadb:/var/lib/mysql
+    networks:
+      - tmccasenet
